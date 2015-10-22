@@ -1,147 +1,263 @@
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.charset.Charset;
-import java.sql.*;
-import java.util.Calendar;
-import java.util.Date;
-import javax.servlet.ServletException;
+import com.datamodel.datamodels.CheckIn;
+import com.datamodel.datamodels.Game;
+import com.datamodel.datamodels.User;
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonWriter;
+
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.List;
 
 
 public class Servlet extends HttpServlet {
 
-    final String myDriver = "com.mysql.jdbc.Driver";
-    final String myUrl = "jdbc:mysql://mysql48.1gb.ru/gb_cleangames?useUnicode=true&characterEncoding=utf8";
-
-    final String User = "gb_cleangames";
-    final String Pass = "a5a23237psg";
+    private static DataBaseHelper dbs = new DataBaseHelper();
+    private static Gson gson = new Gson();
 
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
 
         request.setCharacterEncoding("UTF-8");
         response.setHeader("Content-Type", "text/plain; charset=UTF-8");
-
         String actionType = request.getParameter("ActionType");
 
-        if (actionType.equals("CreateTeam"))
-        {
+        if (actionType.equals("CreateTeam")) {
             String teamName = request.getParameter("TeamName");
             String userID = request.getParameter("UserID");
-            String str = CreateTeam(teamName,userID);
-
+            dbs.CreateTeam(teamName);
             PrintWriter out = response.getWriter();
+            out.println("Team added: " + teamName);
+
+        }
+        if (actionType.equals("UpdateTeam")) {
+            String oldTeamName = request.getParameter("OldTeamName");
+            String newTeamName = request.getParameter("NewTeamName");
+            dbs.UpdateTeamName(oldTeamName,newTeamName);
+            String str = "Team updated: " + oldTeamName + " -> " + newTeamName;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("DeleteTeam")){
+            String teamName = request.getParameter("TeamName");
+            dbs.DeleteTeam(teamName);
+            String str = "Team deleted: " + teamName;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str, String.class, writer);
+            writer.close();
+        }
+        if (actionType.equals("CreateGarbageParameter")) {
+            String sProjectID = request.getParameter("ProjectID");
+            int projectID = new Integer(sProjectID);
+            String parameterName = request.getParameter("ParameterName");
+            String sPrice = request.getParameter("Value");
+            double price = new Double(sPrice);
+            dbs.CreateGarbageParameter(projectID, parameterName, price);
+            String str = "Parameter added: " + parameterName + ", Project ID = "
+                    + projectID + ", Price = " + price;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("UpdateGarbageParameter")){
+            String garbageParameter = request.getParameter("GarbageParameter");
+            String sNewPrice = request.getParameter("NewPrice");
+            double newPrice = new Double(sNewPrice);
+            dbs.UpdateGarbageParameter(garbageParameter, newPrice);
+            String str = "Parameter updated: " + garbageParameter + " new value: " + newPrice;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("DeleteGarbageParameter")){
+            String garbageParameter = request.getParameter("ParameterName");
+            dbs.DeleteParameter(garbageParameter);
+            String str = "Parameter deleted: " + garbageParameter;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("SignUpUser")){
+            String email = request.getParameter("Email");
+            String password = request.getParameter("Password");
+            String userName = request.getParameter("UserName");
+            String userSurname = request.getParameter("UserSurname");
+            dbs.SignUpUser(email, password, userName, userSurname);
+            String str = "User signed up: " + email + " " + password + " "
+                    + userName + " " + userSurname;
+            response.setHeader("Content-Type", "text/plain; charset=UTF-8");
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("GetCheckinList")) {
+            String sProjectID = request.getParameter("ProjectID");
+            int projectID = new Integer(sProjectID);
+            List<CheckIn> AnswerList = dbs.GetCheckinList(projectID);
+            returnJsonArray(response, AnswerList, CheckIn.class);
+        }
+        if (actionType.equals("GetGameList")) {
+            ArrayList<Game> AnswerList = dbs.GetGameList();
+            returnJsonArray(response, AnswerList, Game.class);
+        }
+        if (actionType.equals("CreateTransferItem"))
+        {
+            String sTranferID = request.getParameter("TransferID");
+            int transferID = new Integer(sTranferID);
+            String sParameterID = request.getParameter("ParameterID");
+            int parameterID = new Integer(sParameterID);
+            String sValue = request.getParameter("Value");
+            double value = new Double(sValue);
+            dbs.CreateTransferItem(transferID,parameterID,value);
+            String str = "Transfer iteam created: " + transferID + ' ' + parameterID + ' ' + value;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("CreateTransfer"))
+        {
+            String teamName = request.getParameter("TeamName");
+            String sLocationID = request.getParameter("LocationID");
+            int locationID = new Integer(sLocationID);
+            dbs.CreateTransfer(teamName,locationID);
+            String str = "Transfer iteam created: " + teamName + ' ' + locationID;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("JoinTeam"))
+        {
+            String sUserID= request.getParameter("UserID");
+            int userID = new Integer(sUserID);
+            String sTeamID = request.getParameter("TeamID");
+            int teamID = new Integer(sTeamID);
+            int maxCount = 5;
+            dbs.JoinTeam(userID,teamID,maxCount);
+
+        }
+        if (actionType.equals("LeaveTeam"))
+        {
+            String sID = request.getParameter("ID");
+            int id = new Integer(sID);
+            dbs.LeaveTeam(id);
+            String str = "User left the team: " + id;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("CreateLocation"))
+        {
+            String sType = request.getParameter("Type");
+            int type = new Integer(sType);
+            String sPlaceX = request.getParameter("PlaceX");
+            double placeX = new Double(sPlaceX);
+            String sPlaceY = request.getParameter("PlaceY");
+            double placeY = new Double(sPlaceY);
+            String sProjectID = request.getParameter("ProjectID");
+            int projectID = new Integer(sProjectID);
+            String comment = request.getParameter("Comment");
+            dbs.CreateLocation(type,placeX,placeY,projectID,comment);
+            String str = "Location created: " + type + ' ' + placeX + ' ' + placeY +  ' ' + projectID + ' ' + comment;
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        if (actionType.equals("GetTeamParticipants"))
+        {
+            String sTeamID = request.getParameter("TeamID");
+            int teamID = new Integer(sTeamID);
+            List<User> teamParticipants = dbs.GetTeamParticipants(teamID);
+            returnJsonArray(response, teamParticipants, User.class);
+        }
+        if (actionType.equals("GetUserCheckinList"))
+        {
+            String sPrjectID = request.getParameter("ProjectID");
+            int projectID = new Integer(sPrjectID);
+            String sUserID = request.getParameter("UserID");
+            int userID = new Integer(sUserID);
+            List<CheckIn> userCheckinList = dbs.GetUserCheckinList(projectID,userID);
+            returnJsonArray(response, userCheckinList, CheckIn.class);
+        }
+        if (actionType.equals("GSON")){
+            String str = request.getParameter("TeamName");
+            response.setHeader("Content-Type", "text/plain; charset=UTF-8");
+            Gson gson = new Gson();
+            gson.toJson(str);
+            OutputStream out = response.getOutputStream();
+            JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+            gson.toJson(str,String.class,writer);
+            writer.close();
+        }
+        /*else {
+            String str = "Error";
+            PrintWriter out = response.getWriter();
+            //Gson gson = new Gson();
+            //gson.toJson(str);
             out.println(str);
-
-        }
-        else
-
-        {
-            PrintWriter out = response.getWriter();
-            out.println("Error");
-        }
+        }*/
     }
 
-    public void Login() {}
-
-    public void Register() {}
-
-    public String CreateTeam(String teamName, String userID) {
-        Connection connection = null;
-        Statement statement = null;
-        try
-        {
-            Class.forName("com.mysql.jdbc.Driver");
-
-            connection = DriverManager.getConnection(myUrl, User, Pass);
-
-            String query = "insert into Team (Name, CreatedTime)" + " values (?, ?)";
-
-            long timeNow = Calendar.getInstance().getTimeInMillis();
-            java.sql.Timestamp startDate = new java.sql.Timestamp(timeNow);
-
-            PreparedStatement preparedStatement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
-            preparedStatement.setString(1, teamName);
-            preparedStatement.setTimestamp(2, startDate);
-
-            preparedStatement.executeUpdate();
-
-            ResultSet rs = preparedStatement.getGeneratedKeys();
-            int teamID=0;
-            if (rs.next())
-            {
-                teamID = rs.getInt(1);
-            }
-            query = "UPDATE User SET TeamID = ? WHERE ID = ?";
-            preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setInt(1, teamID);
-            preparedStatement.setInt(2, new Integer(userID));
-            preparedStatement.execute();
-
-            return "Team added: " + teamName;
-
-        }catch(SQLException se){
-            se.printStackTrace();
-        }catch(Exception e){
-            e.printStackTrace();
-        }finally{
-            try{
-                if(statement!=null)
-                    connection.close();
-            }catch(SQLException se){
-            }
-            try{
-                if(connection!=null)
-                    connection.close();
-            }catch(SQLException se) {
-                se.printStackTrace();
-            }
-        }
-        return "Error";
+    private int getProjectID(HttpServletRequest request) {
+        return Integer.parseInt(request.getParameter("projectID"));
     }
 
-    public void JoinTeam() {}
+    private <T> void returnJsonArray(HttpServletResponse response, List<T> list, Class typeOfSrc) throws IOException {
+        JsonWriter writer = openWriter(response);
+        writer.beginArray();
+        for (T obj: list) {
+            gson.toJson(obj, typeOfSrc, writer);
+        }
+        writer.endArray();
+        writer.close();
+    }
 
-    public void LeaveTeam() {}
+    private <T> void returnJsonObject(HttpServletResponse response, T object, Class typeOfSrc) throws IOException {
+        JsonWriter writer = openWriter(response);
+        gson.toJson(object, typeOfSrc, writer);
+        writer.close();
+    }
 
-    public void DeleteTeam() {}
-
-    public void GetTeam() {}
-
-    public void GetTeamList() {}
-
-    public void UpdateTeam() {}
-
-    public void GetProjectList() {}
-
-    public void CreateParameter() {}
-
-    public void DeleteParameter() {}
-
-    public void UpdateParameter() {}
-
-    public void GetParameterList() {}
-
-    public void CreateCheckin() {}
-
-    public void DeleteCheckin() {}
-
-    public void UpdateCheckin() {}
-
-    public void GetCheckinList() {}
-
-    public void GetUserCheckinList() {}
-
-    public void CreateTransfer() {}
-
-    public void UpdateTransfer() {}
-
-    public void DeleteTransfer() {}
-
-    public void GetTransferList() {}
-
-    public void GetLocationList() {}
-
+    private JsonWriter openWriter(HttpServletResponse response) throws IOException {
+        OutputStream out = response.getOutputStream();
+        JsonWriter writer = new JsonWriter(new OutputStreamWriter(out,"UTF-8"));
+        writer.setIndent("  ");
+        return writer;
+    }
 }

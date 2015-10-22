@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="datamodellib">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/datamodellib.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
